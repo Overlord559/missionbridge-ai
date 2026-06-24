@@ -226,10 +226,11 @@ function Hero({ onLoadSample, onStart }: { onLoadSample: () => void; onStart: ()
               </button>
             </div>
             <div className="mt-7 flex flex-wrap gap-2">
+              <span className="chip">Mock Data</span>
+              <span className="chip">Local Demo</span>
               <span className="chip"><ShieldCheck className="h-3 w-3 text-impact" /> Privacy-First</span>
               <span className="chip"><Cpu className="h-3 w-3 text-intel" /> No External AI</span>
               <span className="chip"><Eye className="h-3 w-3 text-warn" /> Human Review Required</span>
-              <span className="chip">Mock Data · Local Demo</span>
             </div>
           </div>
 
