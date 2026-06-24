@@ -211,7 +211,9 @@ export function scanContext(text: string): ScanResult {
     "Replace street addresses with city or region only.",
     "Strip phone numbers, emails, and case IDs.",
     "Aggregate health, legal, and benefits data — never individual records.",
+    "Do not paste protected health information, student records, legal case notes, or financial account details.",
     "Confirm a human reviewer signs off before any AI output is shared externally.",
+    "Heuristic scan only — may not catch every sensitive field. Not a compliance audit.",
   ];
 
   return {

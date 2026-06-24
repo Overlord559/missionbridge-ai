@@ -6,7 +6,7 @@
 
 ## One-line summary
 
-A mock-data portfolio demo that turns sanitized nonprofit program context into privacy-aware AI use cases, mission deliverables, a 30-day plan, and a staff handoff packet — with zero external AI calls.
+A local-first implementation worksheet that turns synthetic samples or sanitized nonprofit program context into privacy-aware AI use cases, mission deliverables, a 30-day plan, and a staff handoff packet — with zero external AI calls.
 
 ---
 
@@ -49,12 +49,12 @@ Context → Safety → Use Cases → Deliverables → 30-Day Plan → Handoff
 
 ## Responsible AI / privacy design
 
-- **Mock data only** — three fictional nonprofits, no real client records
-- **Local privacy scan** — heuristic detection of sensitive categories (names, IDs, health-adjacent terms)
+- **Synthetic samples included** — five fictional nonprofits; **sanitized real context supported**
+- **Local privacy scan** — heuristic detection of sensitive categories (names, emails, phones, addresses, health-adjacent terms) — not a compliance audit
 - **Sanitized output** — redacted version recommended for any downstream use
 - **Human review gates** — use cases and deliverables flag required staff sign-off
 - **No external AI** — no API keys, no cloud inference, no data exfiltration
-- **Clear demo labeling** — badges and footer copy state mock-data / local-demo status
+- **Browser-local persistence** — draft saved in localStorage only
 
 ---
 
@@ -103,9 +103,9 @@ Capture these section IDs for portfolio cards:
 
 **MissionBridge AI**
 
-AI implementation copilot for nonprofits — privacy scan, responsible use cases, grant/impact deliverables, 30-day plan, and staff handoff packet. Mock-data demo; no external AI.
+Local-first AI implementation copilot for nonprofits — privacy scan, responsible use cases, grant/impact deliverables, 30-day plan, and downloadable staff handoff packet. Synthetic samples or sanitized real context; no external AI.
 
-**Tags:** React · TypeScript · TanStack · Tailwind · Nonprofit AI · Responsible AI · Privacy · Grant Writing · Portfolio Demo
+**Tags:** React · TypeScript · TanStack · Tailwind · Nonprofit AI · Responsible AI · Privacy · Grant Writing · Local-First
 
 ---
 

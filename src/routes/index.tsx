@@ -1,15 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
   ArrowRight, Sparkles, ShieldCheck, FileText, Workflow, PackageCheck,
   Copy, Check, AlertTriangle, ShieldAlert, Loader2, Building2,
-  ListChecks, BookOpen, Gauge, ChevronRight, Cpu, Eye,
+  ListChecks, BookOpen, Gauge, ChevronRight, Cpu, Eye, Download, Printer, Trash2,
 } from "lucide-react";
 import {
   SAMPLE_NONPROFITS, scanContext, generateUseCases, generateDeliverables,
   generatePlan, generateHandoff, type Nonprofit, type ScanResult,
   type UseCase, type Deliverable, type PlanWeek, type HandoffPacket,
 } from "@/lib/missionbridge-data";
+import {
+  loadLocalDraft, saveLocalDraft, clearLocalDraft,
+  TRUST_NOTE, REVIEW_NOTE, type ContextMode,
+} from "@/lib/local-draft";
+import {
+  downloadTextFile, printTextDocument, serializeHandoff, serializeImplementationBrief,
+} from "@/lib/export-utils";
 
 export const Route = createFileRoute("/")({
   component: MissionBridgeApp,
@@ -28,6 +35,7 @@ const STEPS: { id: SectionId; label: string; short: string; icon: React.Componen
 
 function MissionBridgeApp() {
   const [active, setActive] = useState<Nonprofit | null>(null);
+  const [contextMode, setContextMode] = useState<ContextMode>("sample");
   const [contextText, setContextText] = useState("");
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -35,6 +43,41 @@ function MissionBridgeApp() {
   const [deliverables, setDeliverables] = useState<Deliverable[] | null>(null);
   const [plan, setPlan] = useState<PlanWeek[] | null>(null);
   const [handoff, setHandoff] = useState<HandoffPacket | null>(null);
+  const draftHydrated = useRef(false);
+
+  useEffect(() => {
+    const draft = loadLocalDraft();
+    if (draft) {
+      if (draft.activeNonprofitId) {
+        const match = SAMPLE_NONPROFITS.find((n) => n.id === draft.activeNonprofitId);
+        if (match) setActive(match);
+      }
+      setContextText(draft.contextText);
+      setContextMode(draft.contextMode);
+    }
+    draftHydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!draftHydrated.current) return;
+    saveLocalDraft({
+      contextMode,
+      activeNonprofitId: active?.id ?? null,
+      contextText,
+    });
+  }, [contextMode, active, contextText]);
+
+  const clearLocalData = useCallback(() => {
+    clearLocalDraft();
+    setActive(null);
+    setContextMode("sample");
+    setContextText("");
+    setScan(null);
+    setUseCases(null);
+    setDeliverables(null);
+    setPlan(null);
+    setHandoff(null);
+  }, []);
 
   const completed = useMemo(() => {
     const c: Record<SectionId, boolean> = {
@@ -51,6 +94,7 @@ function MissionBridgeApp() {
 
   const loadSample = useCallback((n: Nonprofit) => {
     setActive(n);
+    setContextMode("sample");
     const text = buildContextText(n);
     setContextText(text);
     setScan(null); setUseCases(null); setDeliverables(null); setPlan(null); setHandoff(null);
@@ -89,12 +133,14 @@ function MissionBridgeApp() {
 
   return (
     <div className="min-h-screen text-foreground">
-      <TopNav completed={completed} />
+      <TopNav completed={completed} onClearLocalData={clearLocalData} />
       <Hero onLoadSample={() => loadSample(SAMPLE_NONPROFITS[0])} onStart={() => scrollTo("intake")} />
       <ProgressStrip completed={completed} />
 
       <IntakeSection
         active={active}
+        contextMode={contextMode}
+        setContextMode={setContextMode}
         contextText={contextText}
         setContextText={setContextText}
         onLoadSample={loadSample}
@@ -110,9 +156,21 @@ function MissionBridgeApp() {
 
       <PlanSection plan={plan} onBuild={buildPlan} onContinue={buildHandoff} />
 
-      <HandoffSection handoff={handoff} onBuild={buildHandoff} useCasesCount={useCases?.length ?? 0} deliverablesCount={deliverables?.length ?? 0} risk={scan?.risk ?? null} />
+      <HandoffSection
+        handoff={handoff}
+        onBuild={buildHandoff}
+        useCasesCount={useCases?.length ?? 0}
+        deliverablesCount={deliverables?.length ?? 0}
+        risk={scan?.risk ?? null}
+        active={active}
+        contextText={contextText}
+        scan={scan}
+        useCases={useCases}
+        deliverables={deliverables}
+        plan={plan}
+      />
 
-      <Footer />
+      <Footer onClearLocalData={clearLocalData} />
     </div>
   );
 }
@@ -139,7 +197,7 @@ function buildContextText(n: Nonprofit): string {
 
 /* ───────────────────────── NAV ───────────────────────── */
 
-function TopNav({ completed }: { completed: Record<SectionId, boolean> }) {
+function TopNav({ completed, onClearLocalData }: { completed: Record<SectionId, boolean>; onClearLocalData: () => void }) {
   const done = STEPS.filter(s => completed[s.id]).length;
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 backdrop-blur-xl bg-background/70">
@@ -148,7 +206,7 @@ function TopNav({ completed }: { completed: Record<SectionId, boolean> }) {
           <Logo />
           <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
             <span className="h-1 w-1 rounded-full bg-impact" />
-            <span>Mock-data demo · No external AI calls</span>
+            <span>Local-first · No external AI calls</span>
           </div>
         </div>
         <div className="hidden md:flex items-center gap-1 text-xs">
@@ -167,6 +225,9 @@ function TopNav({ completed }: { completed: Record<SectionId, boolean> }) {
             <Gauge className="h-3.5 w-3.5" />
             <span className="tabular-nums">{done}/{STEPS.length}</span>
           </div>
+          <button className="btn-ghost text-xs hidden sm:inline-flex items-center gap-1.5" onClick={onClearLocalData} title="Clear saved draft from this browser">
+            <Trash2 className="h-3.5 w-3.5" /> Clear draft
+          </button>
           <button className="btn-primary text-xs" onClick={() => scrollTo("intake")}>
             Start
           </button>
@@ -213,25 +274,27 @@ function Hero({ onLoadSample, onStart }: { onLoadSample: () => void; onStart: ()
               From messy mission context to a <span className="italic text-mission">complete</span> AI implementation packet.
             </h1>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-              MissionBridge AI helps mission-driven teams turn sanitized program notes, grant requirements, and
-              outcome metrics into privacy-aware AI use cases, impact narratives, donor updates, board briefs, and a
-              30-day implementation handoff packet.
+              MissionBridge AI helps mission-driven teams turn synthetic samples or sanitized program context into
+              privacy-aware AI use cases, impact narratives, donor updates, board briefs, and a 30-day implementation
+              handoff packet — processed locally in your browser.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <button className="btn-primary inline-flex items-center gap-2" onClick={onLoadSample}>
                 Load Sample Nonprofit <ArrowRight className="h-4 w-4" />
               </button>
               <button className="btn-ghost inline-flex items-center gap-2" onClick={onStart}>
-                Start Implementation Brief
+                Paste Sanitized Context
               </button>
             </div>
             <div className="mt-7 flex flex-wrap gap-2">
-              <span className="chip">Mock Data</span>
-              <span className="chip">Local Demo</span>
+              <span className="chip">Synthetic Samples</span>
+              <span className="chip">Sanitized Real Context</span>
+              <span className="chip">Local-First</span>
               <span className="chip"><ShieldCheck className="h-3 w-3 text-impact" /> Privacy-First</span>
               <span className="chip"><Cpu className="h-3 w-3 text-intel" /> No External AI</span>
               <span className="chip"><Eye className="h-3 w-3 text-warn" /> Human Review Required</span>
             </div>
+            <p className="mt-5 text-xs text-muted-foreground max-w-xl leading-relaxed">{TRUST_NOTE}</p>
           </div>
 
           <HeroVisual />
@@ -380,9 +443,11 @@ function ProgressStrip({ completed }: { completed: Record<SectionId, boolean> })
 /* ───────────── INTAKE ───────────── */
 
 function IntakeSection({
-  active, contextText, setContextText, onLoadSample, onScan, scanning,
+  active, contextMode, setContextMode, contextText, setContextText, onLoadSample, onScan, scanning,
 }: {
   active: Nonprofit | null;
+  contextMode: ContextMode;
+  setContextMode: (m: ContextMode) => void;
   contextText: string;
   setContextText: (v: string) => void;
   onLoadSample: (n: Nonprofit) => void;
@@ -390,7 +455,37 @@ function IntakeSection({
   scanning: boolean;
 }) {
   return (
-    <Section id="intake" eyebrow="01 — Context" title="Nonprofit context intake" desc="Paste sanitized program context or load a sample organization. This is the foundation for everything downstream.">
+    <Section id="intake" eyebrow="01 — Context" title="Nonprofit context intake" desc="Load a synthetic sample or paste sanitized real program context. This is the foundation for everything downstream.">
+      <div className="mb-6 panel-strong p-4 sm:p-5 space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setContextMode("sample")}
+            className={`chip ${contextMode === "sample" ? "chip-mission ring-1 ring-mission/40" : ""}`}
+          >
+            Synthetic sample mode
+          </button>
+          <button
+            type="button"
+            onClick={() => setContextMode("sanitized")}
+            className={`chip ${contextMode === "sanitized" ? "chip-impact ring-1 ring-impact/40" : ""}`}
+          >
+            Sanitized real context mode
+          </button>
+        </div>
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{TRUST_NOTE}</p>
+        <p className="text-xs text-warn flex gap-2 items-start">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span>{REVIEW_NOTE}</span>
+        </p>
+        {contextMode === "sanitized" && (
+          <div className="rounded-xl border border-warn/30 bg-warn/10 p-3 text-xs text-warn">
+            <strong>Sanitized real context mode.</strong> Never paste unsanitized names, addresses, phone numbers, emails,
+            health details, student/minor data, veteran benefits details, legal/immigration status, client case notes,
+            financial details, or protected records.
+          </div>
+        )}
+      </div>
       <div className="grid lg:grid-cols-[1fr_360px] gap-6">
         <div className="panel-strong p-5 sm:p-7">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -404,7 +499,9 @@ function IntakeSection({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="chip chip-warn"><AlertTriangle className="h-3 w-3" /> Sanitized data only</span>
+              <span className={`chip ${contextMode === "sample" ? "chip-mission" : "chip-impact"}`}>
+                {contextMode === "sample" ? "Sample mode" : "Sanitized context"}
+              </span>
             </div>
           </div>
 
@@ -683,7 +780,7 @@ function DocumentCard({ d }: { d: Deliverable }) {
         </pre>
       </div>
       <div className="mt-6 pt-4 border-t border-ivory-foreground/10 text-[11px] text-ivory-foreground/55 font-mono flex items-center justify-between gap-2 flex-wrap">
-        <span>MissionBridge AI · mock-data demo · not for external use without staff review</span>
+        <span>MissionBridge AI · local-first worksheet · requires staff review before external use</span>
         <span>Page 1 of 1</span>
       </div>
     </div>
@@ -761,14 +858,52 @@ function KV({ k, v, tint }: { k: string; v: string; tint: "mission" | "impact" |
 
 function HandoffSection({
   handoff, onBuild, useCasesCount, deliverablesCount, risk,
+  active, contextText, scan, useCases, deliverables, plan,
 }: {
   handoff: HandoffPacket | null;
   onBuild: () => void;
   useCasesCount: number;
   deliverablesCount: number;
   risk: "Low" | "Medium" | "High" | null;
+  active: Nonprofit | null;
+  contextText: string;
+  scan: ScanResult | null;
+  useCases: UseCase[] | null;
+  deliverables: Deliverable[] | null;
+  plan: PlanWeek[] | null;
 }) {
   const fullText = useMemo(() => handoff ? serializeHandoff(handoff) : "", [handoff]);
+  const briefText = useMemo(
+    () => serializeImplementationBrief({ org: active, contextText, scan, useCases, deliverables, plan, handoff }),
+    [active, contextText, scan, useCases, deliverables, plan, handoff],
+  );
+
+  const exportActions = handoff ? (
+    <div className="flex flex-wrap items-center gap-2 justify-end">
+      <CopyButton text={fullText} label="Copy packet" />
+      <button
+        type="button"
+        className="btn-ghost inline-flex items-center gap-1.5 text-xs"
+        onClick={() => downloadTextFile("missionbridge-handoff-packet.md", fullText)}
+      >
+        <Download className="h-3.5 w-3.5" /> Download packet
+      </button>
+      <button
+        type="button"
+        className="btn-ghost inline-flex items-center gap-1.5 text-xs"
+        onClick={() => downloadTextFile("missionbridge-implementation-brief.md", briefText)}
+      >
+        <Download className="h-3.5 w-3.5" /> Download brief
+      </button>
+      <button
+        type="button"
+        className="btn-ghost inline-flex items-center gap-1.5 text-xs"
+        onClick={() => printTextDocument("MissionBridge Implementation Brief", briefText)}
+      >
+        <Printer className="h-3.5 w-3.5" /> Print
+      </button>
+    </div>
+  ) : null;
 
   return (
     <Section
@@ -777,9 +912,7 @@ function HandoffSection({
       title="30-day implementation handoff packet"
       desc="Everything a nonprofit team needs to keep going after the engagement ends — workflow, training, prompts, privacy guardrails, metrics, and what to measure next."
       action={
-        handoff ? (
-          <CopyButton text={fullText} label="Copy full packet" />
-        ) : (
+        handoff ? exportActions : (
           <button className="btn-primary inline-flex items-center gap-2 text-xs" onClick={onBuild}>
             Build handoff packet <PackageCheck className="h-3.5 w-3.5" />
           </button>
@@ -881,10 +1014,10 @@ function HandoffSection({
               <div className="h-10 w-10 rounded-lg chip-mission grid place-items-center"><PackageCheck className="h-5 w-5" /></div>
               <div>
                 <div className="text-sm font-medium">Handoff packet · v1</div>
-                <div className="text-xs text-muted-foreground">Ready to share with staff. Mock-data demo — no real client data.</div>
+                <div className="text-xs text-muted-foreground">Copy, download, or print for staff review. {REVIEW_NOTE}</div>
               </div>
             </div>
-            <CopyButton text={fullText} label="Copy full packet" />
+            {exportActions}
           </div>
         </>
       )}
@@ -930,22 +1063,6 @@ function Metric({ label, value, tint, bar }: { label: string; value: string; tin
       )}
     </div>
   );
-}
-
-function serializeHandoff(h: HandoffPacket): string {
-  const lines: string[] = [];
-  lines.push("MISSIONBRIDGE AI — 30-DAY IMPLEMENTATION HANDOFF PACKET", "");
-  lines.push("RECOMMENDED AI WORKFLOW", h.workflow, "");
-  lines.push("STAFF TRAINING CHECKLIST", ...h.trainingChecklist.map(x => "  • " + x), "");
-  lines.push("PROMPT LIBRARY");
-  h.promptLibrary.forEach(p => lines.push(`  [${p.title}]`, "  " + p.prompt, ""));
-  lines.push("PRIVACY CHECKLIST", ...h.privacyChecklist.map(x => "  • " + x), "");
-  lines.push("IMPLEMENTATION ROADMAP", ...h.roadmap.map((x, i) => `  ${i + 1}. ${x}`), "");
-  lines.push("SUCCESS METRICS", ...h.metrics.map(x => "  • " + x), "");
-  lines.push("RISKS & MITIGATIONS", ...h.risks.map(r => `  - Risk: ${r.risk}\n    Mitigation: ${r.mitigation}`), "");
-  lines.push("WHAT TO MEASURE AFTER 30 DAYS", ...h.measure30.map(x => "  • " + x), "");
-  lines.push("NEXT RECOMMENDED WORKFLOWS", ...h.nextWorkflows.map(x => "  • " + x));
-  return lines.join("\n");
 }
 
 /* ───────────── PRIMITIVES ───────────── */
@@ -1003,20 +1120,21 @@ function CopyButton({ text, label = "Copy", small, variant }: { text: string; la
   );
 }
 
-function Footer() {
+function Footer({ onClearLocalData }: { onClearLocalData: () => void }) {
   return (
     <footer id="screenshot-mobile" className="border-t border-border mt-10">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 py-10 grid sm:grid-cols-[1.5fr_1fr_1fr] gap-8">
         <div>
           <Logo />
           <p className="mt-4 text-sm text-muted-foreground max-w-md leading-relaxed">
-            An AI implementation copilot for nonprofits, civic organizations, schools, community programs, veterans
-            organizations, food access groups, and housing nonprofits.
+            A local-first AI implementation worksheet for nonprofits, civic organizations, schools, community programs,
+            veterans organizations, food access groups, and housing nonprofits.
           </p>
+          <p className="mt-3 text-xs text-muted-foreground max-w-md leading-relaxed">{TRUST_NOTE}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="chip chip-warn">Mock-data demo</span>
+            <span className="chip chip-impact">Local-first</span>
             <span className="chip">No external AI calls</span>
-            <span className="chip">No real client data</span>
+            <span className="chip chip-warn">Not a compliance tool</span>
           </div>
         </div>
         <div>
@@ -1030,15 +1148,18 @@ function Footer() {
         <div>
           <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">About</div>
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-            MissionBridge AI is a portfolio demo. Sample organizations and data are synthetic. Not affiliated with any
-            grantmaker, funder, or AI provider.
+            MissionBridge AI supports synthetic samples and sanitized real context. Not affiliated with any grantmaker,
+            funder, or AI provider. {REVIEW_NOTE}
           </p>
+          <button type="button" className="mt-4 btn-ghost text-xs inline-flex items-center gap-1.5" onClick={onClearLocalData}>
+            <Trash2 className="h-3.5 w-3.5" /> Clear saved draft
+          </button>
         </div>
       </div>
       <div className="border-t border-border">
         <div className="mx-auto max-w-7xl px-5 sm:px-8 py-5 flex items-center justify-between gap-4 text-[11px] text-muted-foreground">
-          <div>© MissionBridge AI · Demo build</div>
-          <div className="font-mono">v1.0 · mock-data</div>
+          <div>© MissionBridge AI · Local-first worksheet</div>
+          <div className="font-mono">v1.1 · browser-local</div>
         </div>
       </div>
     </footer>

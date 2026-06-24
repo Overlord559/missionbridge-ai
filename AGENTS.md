@@ -2,7 +2,7 @@
 
 **Audience:** Cursor, Claude, Codex, and other agents working in this repository.
 
-**Project:** MissionBridge AI — portfolio-grade AI implementation copilot demo for nonprofits and mission-driven organizations.
+**Project:** MissionBridge AI — local-first AI implementation worksheet for nonprofits and mission-driven organizations.
 
 ---
 
@@ -17,32 +17,62 @@ If docs conflict with code, **code wins**.
 
 ---
 
+## Context modes (supported)
+
+MissionBridge AI supports:
+
+- **Included synthetic sample nonprofits** — defined in `src/lib/missionbridge-data.ts`
+- **User-provided sanitized real nonprofit/program context** — pasted in the browser intake step
+
+Use synthetic samples or sanitized real nonprofit context. MissionBridge runs locally in the browser and does not send data to external AI services. Do not paste sensitive client records, protected health information, student records, legal case notes, or personally identifiable information unless properly sanitized.
+
+---
+
+## Do not use with (unsupported / prohibited)
+
+MissionBridge AI does **not** support and must **not** be used with:
+
+- unsanitized client records
+- sensitive personally identifiable information
+- protected health information
+- student/minor records
+- legal/immigration case notes
+- veteran benefits case details
+- financial account details
+
+MissionBridge AI is **not a compliance tool**. Privacy scan heuristics may not catch every sensitive field. **Human review is required** before using outputs in grants, donor communications, board materials, or operational decisions.
+
+---
+
 ## Operating rules
 
-- **No backend** — frontend-only demo
+- **No backend** — browser-local only
+- **No auth**
+- **No database**
 - **No API keys** — no OpenAI, Claude, Anthropic, Supabase, Firebase, or external AI calls
-- **No auth, database, or payments**
-- **Local mock data only** — all nonprofit context lives in `src/lib/missionbridge-data.ts`
-- **No real nonprofit or client data** — synthetic samples only
+- **No external AI calls** — rule-based local generators only
+- **No payments**
 - **No production deploy** without explicit operator approval
 - **No push, commit, or stage** unless Edward explicitly approves
 - **Do not fabricate** clients, revenue, contracts, testimonials, grants, or certifications
 - **Do not add Claude/Anthropic branding** inside the product name or UI claims
+- **Do not claim compliance guarantees** or that the privacy scan catches everything
 
 ---
 
 ## What this repo is
 
-MissionBridge AI demonstrates responsible AI implementation patterns for nonprofit teams:
+MissionBridge AI is a local-first responsible AI implementation worksheet for nonprofit teams:
 
-- sanitized context intake
-- privacy and safety scanning
+- sanitized context intake (samples or user-provided)
+- privacy and safety scanning (heuristic — not legal/compliance advice)
 - responsible AI use-case mapping
 - grant / impact / donor / board deliverables
 - 30-day implementation planning
-- copy-ready handoff packets
+- copy-ready handoff packets (copy, download, print)
+- browser-local draft persistence (`localStorage`)
 
-This is a **standalone portfolio demo**. Not production SaaS.
+This is a **standalone portfolio worksheet**. Not production SaaS.
 
 ---
 
