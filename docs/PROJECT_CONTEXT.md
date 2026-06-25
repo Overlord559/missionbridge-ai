@@ -89,6 +89,21 @@ Demonstrate capability for Claude Corps-aligned nonprofit AI work:
 
 ---
 
-## Protected paths
+## External context sources
 
-Do not edit without explicit scope: `.git/**`, `node_modules/**`, `.env*`, unrelated repos.
+Operator Brain:
+
+`C:\dev\operator-brain\BRAIN_INDEX.md`  
+`C:\dev\operator-brain\current-state.md`
+
+Stone Industries OS / Stone Command Library:
+
+`C:\dev\stone-industries-os\00_SYSTEM\CANONICAL_SOURCE_OF_TRUTH.md`
+
+SaaS Factory: `C:\dev\priv-saas-factory`
+
+Repo-local Project OS is the source of truth **for this repo**.
+
+Do not commit or stage without operator approval.
+
+---

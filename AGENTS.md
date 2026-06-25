@@ -17,6 +17,33 @@ If docs conflict with code, **code wins**.
 
 ---
 
+# Stone Industries Routing
+
+This repo uses the Stone Industries execution hierarchy:
+
+1. Operator Brain = active execution cockpit and current-state memory.
+2. Stone Industries OS / Stone Command Library = company-wide prompt/rules/playbook library.
+3. Repo-local Project OS = project-specific working memory.
+4. SaaS Factory = reusable build/design/prompt factory when relevant.
+
+Read first for serious work:
+
+`C:\dev\operator-brain\BRAIN_INDEX.md`  
+`C:\dev\operator-brain\current-state.md`
+
+Company command library:
+
+`C:\dev\stone-industries-os\00_SYSTEM\CANONICAL_SOURCE_OF_TRUTH.md`
+
+Do not copy the full Master Project OS into this repo.
+
+If context conflicts, report: **Context Conflict Detected**  
+If prompt scope is too broad/risky, report: **Prompt Risk Detected**
+
+No git commit/push/stage/reset/clean without explicit approval.
+
+---
+
 ## Context modes (supported)
 
 MissionBridge AI supports:

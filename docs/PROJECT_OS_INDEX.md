@@ -27,13 +27,16 @@ Before editing:
 
 ---
 
-## External context (optional)
+## External context
 
 | Source | Path |
 |--------|------|
 | Operator Brain index | `C:\dev\operator-brain\BRAIN_INDEX.md` |
 | Operator Brain state | `C:\dev\operator-brain\current-state.md` |
+| Stone Command Library map | `C:\dev\stone-industries-os\00_SYSTEM\CANONICAL_SOURCE_OF_TRUTH.md` |
 | SaaS Factory | `C:\dev\priv-saas-factory\MASTER.md` |
+
+Report **Context Conflict Detected** or **Prompt Risk Detected** when appropriate.
 
 ---
 
